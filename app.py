@@ -25,6 +25,11 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 def genFrames():
+    stage = None
+    counter = 0
+    label = None
+    acceptable_position_error = 5
+
     pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
     while True:
         success,frame=cap.read()
@@ -59,22 +64,54 @@ def genFrames():
                 # Calculate angle
                 # pilih pilih joints nya yang bener, pokoknya harus ngebentuk angle
                 
-                angle1 = calculate_angle(shoulder, hip, knee)
-                angle2 = calculate_angle(hip, knee, ankle)
+                hip_angle = calculate_angle(shoulder, hip, knee)
+                knee_angle = calculate_angle(hip, knee, ankle)
 
                 # Visualise angle
                 # copy paste aja sefunction nya, cuma perlu ganti angka angle nya dari variable di atas
                 # sama joint mana yang jadi angle
-                cv2.putText(image, str(angle1), 
+
+                condition_1 = hip_angle > (90+22.5 + acceptable_position_error)
+                condition_2 = hip_angle < 45 - acceptable_position_error
+                condition_3 = knee_angle < 90 - acceptable_position_error
+                condition_4 = knee_angle > 90 + acceptable_position_error
+                
+                if condition_1 or condition_2 or condition_3 or condition_4:
+                    label = "Incorrect"
+                else:
+                    label = "correct"
+
+                # Render angles
+                cv2.putText(image, str(hip_angle), 
                             tuple(np.multiply(hip, [640, 480]).astype(int)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                     )
-                cv2.putText(image, str(angle2), 
+
+                cv2.putText(image, str(knee_angle), 
                             tuple(np.multiply(knee, [640, 480]).astype(int)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                     )
+
+                # Setup status box
+                cv2.rectangle(image, (0,0), (225,73), (245,117,16), -1)
+                
+                # Rep data
+                cv2.putText(image, 'REPS', (15,12), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                cv2.putText(image, str(counter), 
+                            (10,60), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
+                
+                # Stage data
+                cv2.putText(image, 'STAGE', (65,12), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                cv2.putText(image, stage, 
+                            (60,60), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
                 
                 landmarks_row = list(np.array([[landmark.x, landmark.y, landmark.z, landmark.visibility] for landmark in landmarks]).flatten())
+
+                
             except:
                 pass
 
