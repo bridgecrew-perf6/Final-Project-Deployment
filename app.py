@@ -20,7 +20,7 @@ def calculate_angle(a,b,c):
     return angle 
 
 app= Flask(__name__)
-cap= cv2.VideoCapture(0)
+cap= cv2.VideoCapture("situp 1 - benar.mp4")
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -75,7 +75,7 @@ def genFrames():
                 condition_2 = hip_angle < 45 - acceptable_position_error
                 condition_3 = knee_angle < 90 - acceptable_position_error
                 condition_4 = knee_angle > 90 + acceptable_position_error
-                
+
                 if condition_1 or condition_2 or condition_3 or condition_4:
                     label = "Incorrect"
                 else:
@@ -93,8 +93,16 @@ def genFrames():
                                     )
 
                 # Setup status box
-                cv2.rectangle(image, (0,0), (225,73), (245,117,16), -1)
+                cv2.rectangle(image, (0,0), (225,73), (50, 168, 59), -1)
                 
+                # Curl counter logic
+                if hip_angle > 100:
+                    stage = "down"
+                if hip_angle < 60 and stage =='down':
+                    stage="up"
+                    counter +=1
+                    print(counter)
+
                 # Rep data
                 cv2.putText(image, 'REPS', (15,12), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
