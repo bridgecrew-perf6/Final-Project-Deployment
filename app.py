@@ -20,15 +20,17 @@ def calculate_angle(a,b,c):
     return angle 
 
 app= Flask(__name__)
-cap= cv2.VideoCapture("pup.mp4")
+cap= cv2.VideoCapture("pup1.mp4")
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 def genFrames():
-    stage = None
+    stage = 'down'
     counter = 0
     label = None
     acceptable_position_error = 5
+    x=0
+    x=0
 
     pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
     while True:
@@ -66,6 +68,7 @@ def genFrames():
                 
                 hip_angle = calculate_angle(shoulder, hip, knee)
                 knee_angle = calculate_angle(hip, knee, ankle)
+                
 
                 # Visualise angle
                 # copy paste aja sefunction nya, cuma perlu ganti angka angle nya dari variable di atas
@@ -93,15 +96,29 @@ def genFrames():
                                     )
 
                 # Setup status box
-                cv2.rectangle(image, (0,0), (225,73), (50, 168, 59), -1)
+                cv2.rectangle(image, (0,0), (350,73), (50, 168, 59), -1)
                 
-                # Curl counter logic
-                if hip_angle > 100:
+                #Curl counter logic
+                if hip_angle > 100 :
                     stage = "down"
-                if hip_angle < 60 and stage =='down':
+                    x=0
+                    
+                    if hip_angle > 105:
+                        label='Incorrect Rep'
+
+                    
+                if hip_angle < (60 + acceptable_position_error) :
+                    
                     stage="up"
-                    counter +=1
-                    print(counter)
+                    label='Correct Rep'
+                    if x==0:
+                            
+                        counter+=1
+                        print(counter)
+                        print(label)
+                    x=1
+
+
 
                 # Rep data
                 cv2.putText(image, 'REPS', (15,12), 
@@ -116,6 +133,13 @@ def genFrames():
                 cv2.putText(image, stage, 
                             (145,60), 
                             cv2.FONT_HERSHEY_SIMPLEX,0.75, (255,255,255), 2, cv2.LINE_AA)
+                
+                # Condition data
+                cv2.putText(image, 'Label', (270,12), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                cv2.putText(image, label, 
+                            (265,60), 
+                            cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255), 2, cv2.LINE_AA)
                 
                 landmarks_row = list(np.array([[landmark.x, landmark.y, landmark.z, landmark.visibility] for landmark in landmarks]).flatten())
 
@@ -179,7 +203,7 @@ def pushupFrames():
                 hip_angle = calculate_angle(shoulder, hip, knee)
                 knee_angle = calculate_angle(hip, knee, ankle)
                 elbow_angle= calculate_angle(shoulder,elbow,wrist)
-                
+                k=elbow_angle
 
                 # Visualise angle
                 # copy paste aja sefunction nya, cuma perlu ganti angka angle nya dari variable di atas
@@ -190,10 +214,10 @@ def pushupFrames():
                 condition_3 = knee_angle < 90 - acceptable_position_error
                 condition_4 = knee_angle > 90 + acceptable_position_error
 
-                if condition_1 or condition_2 or condition_3 or condition_4:
-                    label = "Incorrect"
-                else:
-                    label = "correct"
+                # if condition_1 or condition_2 or condition_3 or condition_4:
+                #     label = "Incorrect"
+                # else:
+                #     label = "correct"
 
                 # Render angles
                 cv2.putText(image, str(hip_angle), 
@@ -206,16 +230,36 @@ def pushupFrames():
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                     )
 
+                cv2.putText(image, str(elbow_angle), 
+                            tuple(np.multiply(elbow, [640, 480]).astype(int)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                    )
+
                 # Setup status box
-                cv2.rectangle(image, (0,0), (225,73), (50, 168, 59), -1)
+                cv2.rectangle(image, (0,0), (350,73), (50, 168, 59), -1)
                 
                 # Curl counter logic
                 if elbow_angle > 100:
                     stage = "up"
-                if elbow_angle < 85 and stage =='up':
-                    stage="down"
-                    counter +=1
-                    print(counter)
+                    x=0
+                    if hip_angle < 150 or knee_angle<150:
+                        label='Incorrect Pos'
+                    elif elbow_angle > 100 and elbow_angle < 140:
+                        label='Incorrect Rep'
+
+                if elbow_angle<95:
+                    stage='down'    
+
+                if elbow_angle < 95 and hip_angle>150 and knee_angle>150 :
+                    
+                    
+                    label='Correct Rep'
+                    if x==0:
+                            
+                        counter+=1
+                        print(counter)
+                        print(label)
+                    x=1
 
                 # Rep data
                 cv2.putText(image, 'REPS', (15,12), 
@@ -230,6 +274,16 @@ def pushupFrames():
                 cv2.putText(image, stage, 
                             (145,60), 
                             cv2.FONT_HERSHEY_SIMPLEX,0.75, (255,255,255), 2, cv2.LINE_AA)
+                
+                # Condition data
+                cv2.putText(image, 'Label', (270,12), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                cv2.putText(image, label, 
+                            (265,60), 
+                            cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255), 2, cv2.LINE_AA)
+
+                
+                
                 
                 landmarks_row = list(np.array([[landmark.x, landmark.y, landmark.z, landmark.visibility] for landmark in landmarks]).flatten())
 
