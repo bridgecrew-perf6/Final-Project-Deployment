@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from flask import Flask,render_template, Response
+from flask import Flask,render_template, Response,redirect,url_for
 import cv2
 import mediapipe as mp
 import numpy as np
+from requests import request
 
 def calculate_angle(a,b,c):
     a = np.array(a) # First
@@ -20,11 +21,15 @@ def calculate_angle(a,b,c):
     return angle 
 
 app= Flask(__name__)
-cap= cv2.VideoCapture("pup1.mp4")
+cap= cv2.VideoCapture("pup.mp4")
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
+mpPose= mp_pose.Pose()
 
-def genFrames():
+def putText(img,text,loc,font_type,font_scale,font_color,dunno,dunno2):
+                    cv2.putText(img,text,loc,font_type,font_scale,font_color,dunno,dunno2)
+
+def situpFrames():
     stage = 'down'
     counter = 0
     label = None
@@ -53,10 +58,8 @@ def genFrames():
             try:
                 landmarks = results.pose_landmarks.landmark
                 
-                # Get coordinates
-                # tinggal ganti aja mau joint yang mana, liat gambar joints yang direcognise mediapipe di atas
-                # copy paste satu line di sini, terus ganti aja misal LEFT_HIP jadi LEFT_WRIST
-                # jangan lupa ganti nama variable
+                # Get joints coordinates
+
                 hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
                 knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
                 shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
@@ -68,15 +71,11 @@ def genFrames():
                 
                 hip_angle = calculate_angle(shoulder, hip, knee)
                 knee_angle = calculate_angle(hip, knee, ankle)
+
                 
-
-                # Visualise angle
-                # copy paste aja sefunction nya, cuma perlu ganti angka angle nya dari variable di atas
-                # sama joint mana yang jadi angle
-
-                condition_1 = hip_angle > (90+22.5 + acceptable_position_error)
-                condition_2 = hip_angle < 45 - acceptable_position_error
-                condition_3 = knee_angle < 90 - acceptable_position_error
+                condition_1 = hip_angle > 100
+                condition_2 = hip_angle > 105
+                condition_3 = hip_angle < (60 + acceptable_position_error)
                 condition_4 = knee_angle > 90 + acceptable_position_error
 
                 if condition_1 or condition_2 or condition_3 or condition_4:
@@ -99,15 +98,15 @@ def genFrames():
                 cv2.rectangle(image, (0,0), (350,73), (50, 168, 59), -1)
                 
                 #Curl counter logic
-                if hip_angle > 100 :
+                if condition_1  :
                     stage = "down"
                     x=0
                     
-                    if hip_angle > 105:
+                    if condition_2 :
                         label='Incorrect Rep'
 
                     
-                if hip_angle < (60 + acceptable_position_error) :
+                if condition_3 :
                     
                     stage="up"
                     label='Correct Rep'
@@ -123,6 +122,8 @@ def genFrames():
                 # Rep data
                 cv2.putText(image, 'REPS', (15,12), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
+                
+
                 cv2.putText(image, str(counter), 
                             (30,60), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255,255,255), 2, cv2.LINE_AA)
@@ -135,7 +136,7 @@ def genFrames():
                             cv2.FONT_HERSHEY_SIMPLEX,0.75, (255,255,255), 2, cv2.LINE_AA)
                 
                 # Condition data
-                cv2.putText(image, 'Label', (270,12), 
+                cv2.putText(image, 'LABEL', (270,12), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
                 cv2.putText(image, label, 
                             (265,60), 
@@ -148,6 +149,8 @@ def genFrames():
                 pass
 
             # Render detections
+            
+
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
                                     mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
                                     mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2) 
@@ -186,10 +189,8 @@ def pushupFrames():
             try:
                 landmarks = results.pose_landmarks.landmark
                 
-                # Get coordinates
-                # tinggal ganti aja mau joint yang mana, liat gambar joints yang direcognise mediapipe di atas
-                # copy paste satu line di sini, terus ganti aja misal LEFT_HIP jadi LEFT_WRIST
-                # jangan lupa ganti nama variable
+                # Get joints coordinates
+
                 hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
                 knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
                 shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
@@ -203,23 +204,20 @@ def pushupFrames():
                 hip_angle = calculate_angle(shoulder, hip, knee)
                 knee_angle = calculate_angle(hip, knee, ankle)
                 elbow_angle= calculate_angle(shoulder,elbow,wrist)
-                k=elbow_angle
+                
 
-                # Visualise angle
-                # copy paste aja sefunction nya, cuma perlu ganti angka angle nya dari variable di atas
-                # sama joint mana yang jadi angle
+                
 
-                condition_1 = hip_angle > (90+22.5 + acceptable_position_error)
-                condition_2 = hip_angle < 45 - acceptable_position_error
-                condition_3 = knee_angle < 90 - acceptable_position_error
-                condition_4 = knee_angle > 90 + acceptable_position_error
 
-                # if condition_1 or condition_2 or condition_3 or condition_4:
-                #     label = "Incorrect"
-                # else:
-                #     label = "correct"
+                condition_1 = elbow_angle > 100
+                condition_2 = hip_angle < 150 or knee_angle<150
+                condition_3 = elbow_angle > 100 and elbow_angle < 140
+                condition_4 = elbow_angle<95
+                condition_5= elbow_angle < 95 and hip_angle>150 and knee_angle>150 
+
 
                 # Render angles
+
                 cv2.putText(image, str(hip_angle), 
                             tuple(np.multiply(hip, [640, 480]).astype(int)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
@@ -239,18 +237,18 @@ def pushupFrames():
                 cv2.rectangle(image, (0,0), (350,73), (50, 168, 59), -1)
                 
                 # Curl counter logic
-                if elbow_angle > 100:
+                if condition_1:
                     stage = "up"
                     x=0
-                    if hip_angle < 150 or knee_angle<150:
+                    if condition_2:
                         label='Incorrect Pos'
-                    elif elbow_angle > 100 and elbow_angle < 140:
+                    elif condition_3:
                         label='Incorrect Rep'
 
-                if elbow_angle<95:
+                if condition_4:
                     stage='down'    
 
-                if elbow_angle < 95 and hip_angle>150 and knee_angle>150 :
+                if condition_5:
                     
                     
                     label='Correct Rep'
@@ -276,11 +274,13 @@ def pushupFrames():
                             cv2.FONT_HERSHEY_SIMPLEX,0.75, (255,255,255), 2, cv2.LINE_AA)
                 
                 # Condition data
-                cv2.putText(image, 'Label', (270,12), 
+                cv2.putText(image, 'LABEL', (270,12), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
                 cv2.putText(image, label, 
                             (265,60), 
                             cv2.FONT_HERSHEY_SIMPLEX,0.5, (255,255,255), 2, cv2.LINE_AA)
+                
+                
 
                 
                 
@@ -292,6 +292,7 @@ def pushupFrames():
                 pass
 
             # Render detections
+            # drawLandmarks=mp_drawing.draw_landmarks()
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
                                     mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
                                     mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2) 
@@ -306,10 +307,28 @@ def pushupFrames():
 def index():
     return render_template('index.html')
 
+@app.route('/pushup')
+def index1():
+    return render_template('pushup.html')
+
+
 @app.route('/video_feed')
 def video_feed():
+    return Response(situpFrames(),mimetype='multipart/x-mixed-replace;boundary=frame')
+
+
+@app.route('/pushup_feed')
+def pushup_feed():
     return Response(pushupFrames(),mimetype='multipart/x-mixed-replace;boundary=frame')
 
+
+
+
+
+# @app.route('/switch/',methods=('GET','POST'))
+# def switch():
+#     if request.method='POST':
+#         return render_template('')
     
 if __name__=='__main__':
     app.run(port=5000,debug=True)
