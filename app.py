@@ -21,7 +21,7 @@ def calculate_angle(a,b,c):
     return angle 
 
 app= Flask(__name__)
-cap= cv2.VideoCapture("pup.mp4")
+cap= cv2.VideoCapture(0)
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 mpPose= mp_pose.Pose()
