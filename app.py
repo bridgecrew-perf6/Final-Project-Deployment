@@ -311,6 +311,10 @@ def index():
 def index1():
     return render_template('pushup.html')
 
+@app.route('/situp')
+def index2():
+    return render_template('situp.html')
+
 
 @app.route('/video_feed')
 def video_feed():
